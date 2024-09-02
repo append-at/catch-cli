@@ -32,3 +32,11 @@ serde_json = "1.0.127"
 
 # Networking
 reqwest = { version = "0.12.7", features = ["json"] }
+
+[dev-dependencies]
+mockito = "1.5.0"
+tokio = { version = "1.39.3", features = ["full", "test-util"] }
+
+[[bin]]
+name = "catch"
+path = "src/bin/main.rs"
