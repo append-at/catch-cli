@@ -26,7 +26,9 @@ fn get_git_remote_url() -> io::Result<String> {
     let reader = BufReader::new(file);
     let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
 
-    let origin_start = lines.iter().position(|line| line.trim() == "[remote \"origin\"]");
+    let origin_start = lines
+        .iter()
+        .position(|line| line.trim() == "[remote \"origin\"]");
 
     if let Some(start) = origin_start {
         for line in &lines[start + 1..] {
@@ -39,12 +41,16 @@ fn get_git_remote_url() -> io::Result<String> {
         }
     }
 
-    Err(io::Error::new(io::ErrorKind::NotFound, "Remote URL not found in .git/config"))
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        "Remote URL not found in .git/config",
+    ))
 }
 
 fn parse_github_url(url: &str) -> Result<(String, String), String> {
     let url = url.trim().strip_prefix("url = ").unwrap_or(url).trim();
-    let url = url.strip_prefix("git@github.com:")
+    let url = url
+        .strip_prefix("git@github.com:")
         .or_else(|| url.strip_prefix("https://github.com/"))
         .or_else(|| url.strip_prefix("git://github.com/"))
         .unwrap_or(url);
