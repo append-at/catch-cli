@@ -2,42 +2,35 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchConnectCLIResponse {
-    pub public_key: String,
-    pub integration_id: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-struct CatchSessionAnalyzingModuleStructureResult {
+pub struct CatchSessionAnalyzingModuleStructureResult {
     pub status: String,
     pub structure: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchSessionExtractingCandidatesResult {
+pub struct CatchSessionExtractingCandidatesResult {
     pub status: String,
     pub candidates: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchPlatformInfo {
+pub struct CatchPlatformInfo {
     pub platform: String,
     pub architecture_description: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchSessionAnalyzePlatformResult {
+pub struct CatchSessionAnalyzePlatformResult {
     pub status: String,
     pub platform_info: CatchPlatformInfo,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchDiffFile {
+pub struct CatchDiffFile {
     pub file_path: String,
     pub patch_content: String,
     pub modified_content: String,
@@ -46,21 +39,21 @@ struct CatchDiffFile {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchSessionGeneratingDiffResult {
+pub struct CatchSessionGeneratingDiffResult {
     pub files: Vec<CatchDiffFile>,
     pub status: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchSessionResult {
+pub struct CatchSessionResult {
     pub step: String,
     pub status: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
-struct CatchSessionOutput {
+pub struct CatchSessionOutput {
     pub docs: Vec<String>,
     pub fetching_code: CatchSessionResult,
     pub indexing_code: CatchSessionResult,
@@ -73,7 +66,7 @@ struct CatchSessionOutput {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchSessionProcessInfo {
+pub struct CatchSessionProcessInfo {
     pub id: String,
     pub status: String,
     pub output: CatchSessionOutput,

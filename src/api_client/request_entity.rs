@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -10,7 +10,7 @@ pub struct CatchConnectCLIRequest {
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct CatchCLIRcpRequest {
+pub struct CatchCLIRcpRequest {
     pub files: Vec<String>,
     #[serde(rename = "sessionId")]
     pub session_id: String,

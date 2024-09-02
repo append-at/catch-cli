@@ -1,10 +1,18 @@
-const BASE_API_URL: &str = "https://api.dev.trycatch.ai";
+pub const BASE_CATCH_API_URL: &str = "https://api.dev.trycatch.ai";
 
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use reqwest::{Client, Response, StatusCode};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 
+pub mod cli_entity;
 pub mod request_entity;
-pub mod response_entity;
+pub mod session_entity;
+
+#[derive(Debug)]
+pub enum CatchApiError {
+    RequestFailed(reqwest::Error),
+    ResponseParseError(reqwest::Error),
+}
 
 pub struct CatchApiClient {
     client: Client,
@@ -16,6 +24,12 @@ pub enum CatchApiResponse<T: for<'de> Deserialize<'de>> {
     NoContent,
 }
 
+impl From<reqwest::Error> for CatchApiError {
+    fn from(error: reqwest::Error) -> Self {
+        CatchApiError::RequestFailed(error)
+    }
+}
+
 impl CatchApiClient {
     pub fn new(base_url: &str) -> Self {
         Self {
@@ -24,41 +38,56 @@ impl CatchApiClient {
         }
     }
 
-    pub async fn get<T: for<'de> Deserialize<'de>>(
-        &self,
-        endpoint: &str,
-    ) -> Result<CatchApiResponse<T>, reqwest::Error> {
-        let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.client.get(&url).send().await?;
-        let converted_response = response.json::<T>().await?;
-
-        Ok(CatchApiResponse::Success(converted_response))
-    }
-
-    pub async fn post<T: for<'de> Deserialize<'de>, U: Serialize>(
-        &self,
-        endpoint: &str,
-        body: &U,
-    ) -> Result<CatchApiResponse<T>, reqwest::Error> {
-        let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.client.post(&url).json(body).send().await?;
-
+    async fn handle_response<T: DeserializeOwned>(
+        response: Response,
+    ) -> Result<CatchApiResponse<T>, CatchApiError> {
         match response.status() {
-            reqwest::StatusCode::NO_CONTENT => Ok(CatchApiResponse::NoContent),
+            StatusCode::NO_CONTENT => Ok(CatchApiResponse::NoContent),
             _ => {
-                let data = response.json::<T>().await?;
+                let data = response
+                    .json::<T>()
+                    .await
+                    .map_err(CatchApiError::ResponseParseError)?;
                 Ok(CatchApiResponse::Success(data))
             }
         }
     }
 
-    pub async fn delete(&self, endpoint: &str) -> Result<CatchApiResponse<()>, reqwest::Error> {
+    pub async fn get<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+    ) -> Result<CatchApiResponse<T>, CatchApiError> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.client.get(&url).send().await?;
+        Self::handle_response(response).await
+    }
+
+    pub async fn post<T: DeserializeOwned, U: serde::Serialize + ?Sized>(
+        &self,
+        endpoint: &str,
+        body: &U,
+    ) -> Result<CatchApiResponse<T>, CatchApiError> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.client.post(&url).json(body).send().await?;
+        Self::handle_response(response).await
+    }
+
+    pub async fn put<T: DeserializeOwned, U: serde::Serialize + ?Sized>(
+        &self,
+        endpoint: &str,
+        body: &U,
+    ) -> Result<CatchApiResponse<T>, CatchApiError> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.client.put(&url).json(body).send().await?;
+        Self::handle_response(response).await
+    }
+
+    pub async fn delete<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+    ) -> Result<CatchApiResponse<T>, CatchApiError> {
         let url = format!("{}{}", self.base_url, endpoint);
         let response = self.client.delete(&url).send().await?;
-
-        match response.status() {
-            reqwest::StatusCode::NO_CONTENT => Ok(CatchApiResponse::NoContent),
-            _ => Ok(CatchApiResponse::Success(())),
-        }
+        Self::handle_response(response).await
     }
 }
