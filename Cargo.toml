@@ -25,3 +25,10 @@ tui-textarea = "0.6.1"
 
 # Unicode
 unicode-segmentation = "1.10.1"
+
+# Serialization
+serde = { version = "1.0.209", features = ["derive"] }
+serde_json = "1.0.127"
+
+# Networking
+reqwest = { version = "0.12.7", features = ["json"] }
