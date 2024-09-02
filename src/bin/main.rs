@@ -1,11 +1,9 @@
+use catch_cli::git_info;
 use flume::{Receiver, Sender};
 use log::error;
 use once_cell::sync::Lazy;
 use std::process::exit;
 use std::{io, panic};
-
-mod api_client;
-mod git_info;
 
 pub static SIGNALING_STOP: Lazy<(Sender<()>, Receiver<()>)> = Lazy::new(flume::unbounded);
 
