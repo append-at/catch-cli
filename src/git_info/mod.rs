@@ -21,7 +21,7 @@ pub fn get_repo_info() -> io::Result<(String, String)> {
     }
 }
 
-fn get_git_remote_url() -> io::Result<String> {
+pub fn get_git_remote_url() -> io::Result<String> {
     let file = File::open(".git/config")?;
     let reader = BufReader::new(file);
     let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
@@ -36,7 +36,7 @@ fn get_git_remote_url() -> io::Result<String> {
                 break;
             }
             if line.trim().starts_with("url = ") {
-                return Ok(line.trim_start_matches("url = ").to_string());
+                return Ok(line.trim().trim_start_matches("url = ").to_string());
             }
         }
     }
@@ -47,7 +47,7 @@ fn get_git_remote_url() -> io::Result<String> {
     ))
 }
 
-fn parse_github_url(url: &str) -> Result<(String, String), String> {
+pub fn parse_github_url(url: &str) -> Result<(String, String), String> {
     let url = url.trim().strip_prefix("url = ").unwrap_or(url).trim();
     let url = url
         .strip_prefix("git@github.com:")

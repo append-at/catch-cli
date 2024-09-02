@@ -138,6 +138,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tui-textarea",
  "unicode-segmentation",

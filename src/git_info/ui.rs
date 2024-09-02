@@ -108,7 +108,7 @@ pub fn prompt_git_info_form(
     let mut stdout = stdout.lock();
 
     enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture);
+    _ = execute!(stdout, EnterAlternateScreen, EnableMouseCapture);
 
     let backend = CrosstermBackend::new(stdout);
     let mut term = Terminal::new(backend)?;
