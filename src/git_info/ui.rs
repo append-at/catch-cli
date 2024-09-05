@@ -13,8 +13,8 @@ use std::io::StdoutLock;
 use tui_textarea::{Input, Key, TextArea};
 use unicode_segmentation::UnicodeSegmentation;
 
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+fn popup_area(area: Rect, percent_x: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Length(5)]).flex(Flex::Center);
     let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
@@ -70,7 +70,7 @@ fn open_form(
 
     loop {
         terminal.draw(|f| {
-            let area = popup_area(f.area(), 60, 60);
+            let area = popup_area(f.area(), 80);
             f.render_widget(&textarea, area);
         })?;
 
@@ -100,6 +100,16 @@ fn open_form(
     Ok(result.into())
 }
 
+fn finalize_terminal(mut term: Terminal<CrosstermBackend<StdoutLock>>) {
+    disable_raw_mode().unwrap();
+    execute!(
+        term.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )
+    .unwrap();
+}
+
 pub fn prompt_git_info_form(
     default_value_org_name: &str,
     default_value_repo_name: &str,
@@ -114,23 +124,37 @@ pub fn prompt_git_info_form(
     let mut term = Terminal::new(backend)?;
 
     // org_name
-    let org_name = open_form(
+    let org_name = match open_form(
         &mut term,
         "Enter organization name... (ex. catch-org)",
         default_value_org_name,
-    )?;
-    let repo_name = open_form(
+    ) {
+        Ok(org_name) => org_name,
+        Err(e) => {
+            finalize_terminal(term);
+            return Err(e);
+        }
+    };
+    let repo_name = match open_form(
         &mut term,
         "Enter repository name... (ex. catch-cli)",
         default_value_repo_name,
-    )?;
+    ) {
+        Ok(repo_name) => repo_name,
+        Err(e) => {
+            finalize_terminal(term);
+            return Err(e);
+        }
+    };
 
     disable_raw_mode()?;
+
     execute!(
         term.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture
     )?;
+
     term.show_cursor()?;
 
     Ok((org_name, repo_name))
