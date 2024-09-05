@@ -1,6 +1,6 @@
-use catch_cli::ongoing_session::{handle_sessions, CatchSessionError};
-use std::path::PathBuf;
+use catch_cli::ongoing_session::active_session_checker::{handle_sessions, CatchSessionError};
 use std::fs;
+use std::path::PathBuf;
 use tempfile::{tempdir, TempDir};
 
 fn setup_temp_session(session_id: &str) -> (TempDir, PathBuf) {
