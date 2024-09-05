@@ -1,5 +1,6 @@
 use catch_cli::git_info;
-use catch_cli::ongoing_session::{handle_sessions, CatchSessionError};
+use catch_cli::ongoing_session::active_session_checker::{handle_sessions, CatchSessionError};
+use catch_cli::ongoing_session::session_connector::connect_cli_to_session;
 use flume::{Receiver, Sender};
 use log::{error, info};
 use once_cell::sync::Lazy;
@@ -28,8 +29,6 @@ async fn main() -> io::Result<()> {
     // find ongoing session
     let temp_path = std::env::temp_dir();
 
-    println!("temp_path: {:?}", temp_path);
-
     let active_session_id = match handle_sessions(&temp_path) {
         Ok(session_id) => {
             info!("Found catch session: {}", session_id);
@@ -48,10 +47,16 @@ async fn main() -> io::Result<()> {
     };
 
     let (org_name, repo_name) = git_info::get_repo_info()?;
-    info!(
-        "Setting repo key to session {}: {}/{}",
-        active_session_id, org_name, repo_name
-    );
+    let cli_connect_result =
+        match connect_cli_to_session(active_session_id, org_name, repo_name).await {
+            Ok(response) => response,
+            Err(e) => {
+                error!("Failed to connect CLI to session: {}", e);
+                exit(-4);
+            }
+        };
+
+    info!(":✅ Connected CLI to session: {:?}", cli_connect_result);
 
     Ok(())
 }
