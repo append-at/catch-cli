@@ -18,6 +18,7 @@ tokio = { version = "1.39.3", features = ["rt-multi-thread", "rt", "macros"] }
 
 # Logging
 log = "0.4.22"
+handsome_logger = "0.8.0"
 
 # UI
 ratatui = "0.28.1"
@@ -35,6 +36,7 @@ reqwest = { version = "0.12.7", features = ["json"] }
 
 # I/O
 tempfile = "3.12.0"
+regex = "1.10.6"
 
 [dev-dependencies]
 mockito = "1.5.0"
