@@ -1,3 +1,4 @@
+use catch_cli::code_reader::find_and_read_files;
 use catch_cli::git_info;
 use catch_cli::ongoing_session::active_session_checker::{handle_sessions, CatchSessionError};
 use catch_cli::ongoing_session::session_connector::connect_cli_to_session;
@@ -57,6 +58,16 @@ async fn main() -> io::Result<()> {
         };
 
     info!(":✅ Connected CLI to session: {:?}", cli_connect_result);
+
+    let current_dir = std::env::current_dir()?;
+    let pre_target_files = find_and_read_files(&current_dir, &cli_connect_result.public_key).await?;
+
+    for file in pre_target_files {
+        info!(
+            ":📄 Found supported file: {:?}",
+            file.encrypted_file_content
+        );
+    }
 
     Ok(())
 }
