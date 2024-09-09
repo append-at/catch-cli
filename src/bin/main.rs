@@ -1,3 +1,4 @@
+use catch_cli::code_analyzer::request_rcp;
 use catch_cli::code_reader::find_and_read_files;
 use catch_cli::git_info;
 use catch_cli::ongoing_session::active_session_checker::{
@@ -88,6 +89,22 @@ async fn main() -> io::Result<()> {
             ":📄 Found supported file: {:?}",
             file.encrypted_file_content
         );
+    }
+
+    match request_rcp(
+        &cli_connect_result.integration_id,
+        &active_session_id,
+        &pre_target_files,
+    )
+    .await
+    {
+        Ok(_) => {
+            info!(":✅ Requested code analyzer.");
+        }
+        Err(e) => {
+            error!("Failed to request code analyzer: {}", e);
+            exit(-6);
+        }
     }
 
     Ok(())

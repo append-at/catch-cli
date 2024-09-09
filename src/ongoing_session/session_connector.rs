@@ -1,6 +1,6 @@
 use crate::api_client::cli_entity::CatchConnectCLIResponse;
 use crate::api_client::request_entity::CatchConnectCLIRequest;
-use crate::api_client::{CatchApiClient, CatchApiResponse, BASE_CATCH_API_URL};
+use crate::api_client::{CatchApiClient, CatchApiResponse};
 use log::{error, info, warn};
 use ratatui::backend::CrosstermBackend;
 use ratatui::crossterm::cursor::position;
@@ -37,7 +37,7 @@ async fn perform_api_request(
     org_name: String,
     repo_name: String,
 ) -> io::Result<CatchConnectCLIResponse> {
-    let api_client = CatchApiClient::new(BASE_CATCH_API_URL);
+    let api_client = CatchApiClient::new();
 
     let response = api_client
         .post::<CatchConnectCLIResponse, CatchConnectCLIRequest>(

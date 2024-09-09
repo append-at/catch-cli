@@ -42,12 +42,7 @@ fn get_session_folders(temp_path: &Path) -> io::Result<Vec<(String, PathBuf)>> {
 }
 
 pub async fn is_session_valid(session_id: String) -> io::Result<bool> {
-    let url = std::env::var("CATCH_CLI_BASE_API_URL");
-    let api_client = match url {
-        Ok(url) => CatchApiClient::new(url.as_str()),
-        Err(_) => CatchApiClient::new(BASE_CATCH_API_URL),
-    };
-
+    let api_client = CatchApiClient::new();
     let response = api_client
         .get::<CatchSessionStatusResponse>(format!("/session/{}/process", session_id).as_str())
         .await;
