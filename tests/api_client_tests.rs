@@ -24,7 +24,9 @@ async fn test_get_request() {
         .create_async()
         .await;
 
-    let client = CatchApiClient::new(&server.url());
+    std::env::set_var("CATCH_CLI_BASE_API_URL", server.url());
+
+    let client = CatchApiClient::new();
     let response = client.get::<TestUser>("/users/1").await.unwrap();
 
     mock.assert();
@@ -58,7 +60,9 @@ async fn test_post_request() {
         .create_async()
         .await;
 
-    let client = CatchApiClient::new(&server.url());
+    std::env::set_var("CATCH_CLI_BASE_API_URL", server.url());
+
+    let client = CatchApiClient::new();
     let response = client
         .post::<TestUser, _>("/users", &new_user)
         .await
@@ -91,7 +95,9 @@ async fn test_put_request() {
         .create_async()
         .await;
 
-    let client = CatchApiClient::new(&server.url());
+    std::env::set_var("CATCH_CLI_BASE_API_URL", server.url());
+
+    let client = CatchApiClient::new();
     let response = client
         .put::<TestUser, _>("/users/1", &update_user)
         .await
@@ -115,7 +121,9 @@ async fn test_delete_request() {
         .create_async()
         .await;
 
-    let client = CatchApiClient::new(&server.url());
+    std::env::set_var("CATCH_CLI_BASE_API_URL", server.url());
+
+    let client = CatchApiClient::new();
     let response = client.delete::<()>("/users/1").await.unwrap();
 
     mock.assert();
@@ -136,7 +144,9 @@ async fn test_no_content_response() {
         .create_async()
         .await;
 
-    let client = CatchApiClient::new(&server.url());
+    std::env::set_var("CATCH_CLI_BASE_API_URL", server.url());
+
+    let client = CatchApiClient::new();
     let response = client.get::<()>("/empty").await.unwrap();
 
     mock.assert();

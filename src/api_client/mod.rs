@@ -31,10 +31,12 @@ impl From<reqwest::Error> for CatchApiError {
 }
 
 impl CatchApiClient {
-    pub fn new(base_url: &str) -> Self {
+    pub fn new() -> Self {
+        let base_url = std::env::var("CATCH_CLI_BASE_API_URL");
+
         Self {
             client: Client::new(),
-            base_url: base_url.to_string(),
+            base_url: base_url.unwrap_or_else(|_| BASE_CATCH_API_URL.to_string()),
         }
     }
 
