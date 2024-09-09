@@ -67,9 +67,9 @@ pub struct CatchSessionOutput {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CatchSessionProcessInfo {
-    pub id: String,
-    pub status: String,
-    pub output: CatchSessionOutput,
+    pub id: Option<String>,
+    pub status: Option<String>,
+    pub output: Option<CatchSessionOutput>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

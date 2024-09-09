@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 pub mod cli_entity;
 pub mod request_entity;
-pub mod session_entity;
+pub mod session_status_entity;
 
 #[derive(Debug)]
 pub enum CatchApiError {
@@ -41,15 +41,15 @@ impl CatchApiClient {
     async fn handle_response<T: DeserializeOwned>(
         response: Response,
     ) -> Result<CatchApiResponse<T>, CatchApiError> {
-        match response.status() {
-            StatusCode::NO_CONTENT => Ok(CatchApiResponse::NoContent),
-            _ => {
-                let data = response
-                    .json::<T>()
-                    .await
-                    .map_err(CatchApiError::ResponseParseError)?;
-                Ok(CatchApiResponse::Success(data))
-            }
+        match response.error_for_status() {
+            Ok(res) => match StatusCode::NO_CONTENT == res.status() {
+                true => Ok(CatchApiResponse::NoContent),
+                false => Ok(CatchApiResponse::Success(match res.json().await {
+                    Ok(json) => json,
+                    Err(e) => return Err(CatchApiError::ResponseParseError(e)),
+                })),
+            },
+            Err(e) => Err(CatchApiError::RequestFailed(e)),
         }
     }
 

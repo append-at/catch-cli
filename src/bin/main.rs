@@ -1,6 +1,8 @@
 use catch_cli::code_reader::find_and_read_files;
 use catch_cli::git_info;
-use catch_cli::ongoing_session::active_session_checker::{handle_sessions, CatchSessionError};
+use catch_cli::ongoing_session::active_session_checker::{
+    handle_sessions, is_session_valid, CatchSessionError,
+};
 use catch_cli::ongoing_session::session_connector::connect_cli_to_session;
 use flume::{Receiver, Sender};
 use log::{error, info};
@@ -47,9 +49,25 @@ async fn main() -> io::Result<()> {
         }
     };
 
+    match is_session_valid(active_session_id.clone()).await {
+        Ok(is_valid) => {
+            if !is_valid {
+                error!(
+                    "This session({}) is already being processed. Please start a new session.",
+                    active_session_id
+                );
+                exit(-4);
+            }
+        }
+        Err(e) => {
+            error!("Failed to check session status: {}", e);
+            exit(-5);
+        }
+    };
+
     let (org_name, repo_name) = git_info::get_repo_info()?;
     let cli_connect_result =
-        match connect_cli_to_session(active_session_id, org_name, repo_name).await {
+        match connect_cli_to_session(active_session_id.to_owned(), org_name, repo_name).await {
             Ok(response) => response,
             Err(e) => {
                 error!("Failed to connect CLI to session: {}", e);
@@ -59,8 +77,11 @@ async fn main() -> io::Result<()> {
 
     info!(":✅ Connected CLI to session: {:?}", cli_connect_result);
 
+    let encryption_key = rand::random::<[u8; 32]>();
+    let iv = rand::random::<[u8; 16]>();
+
     let current_dir = std::env::current_dir()?;
-    let pre_target_files = find_and_read_files(&current_dir, &cli_connect_result.public_key).await?;
+    let pre_target_files = find_and_read_files(&current_dir, &encryption_key, &iv).await?;
 
     for file in pre_target_files {
         info!(

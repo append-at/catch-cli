@@ -1,4 +1,6 @@
-use crate::cryptography::encrypt_rsa4096_base64;
+use crate::cryptography::encrypt_aes_256;
+use base64::engine::general_purpose;
+use base64::Engine;
 use std::future::Future;
 use std::path::Path;
 use std::pin::Pin;
@@ -44,7 +46,8 @@ fn is_whitelisted(file_name: &str) -> bool {
 }
 
 fn visit_dirs<'a>(
-    public_key: &'a str,
+    encryption_key: &'a [u8; 32],
+    encryption_iv: &'a [u8; 16],
     base_dir: &'a Path,
     dir: &'a Path,
     result: &'a mut Vec<CatchCLICodeFile>,
@@ -54,7 +57,7 @@ fn visit_dirs<'a>(
         while let Some(entry) = entries.next_entry().await? {
             let path = entry.path();
             if path.is_dir() {
-                visit_dirs(public_key, base_dir, &path, result).await?;
+                visit_dirs(encryption_key, encryption_iv, base_dir, &path, result).await?;
             } else {
                 if let Some(file_name) = path.file_name() {
                     if let Some(file_name_str) = file_name.to_str() {
@@ -63,8 +66,9 @@ fn visit_dirs<'a>(
                                 .strip_prefix(base_dir)
                                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                             let content = fs::read_to_string(&path).await?;
-                            let encrypted_content = encrypt_rsa4096_base64(public_key, &content)
-                                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                            let encrypted_content = general_purpose::STANDARD
+                                .encode(&encrypt_aes_256(encryption_key, encryption_iv, &content));
+
                             result.push(CatchCLICodeFile {
                                 path: relative_path.to_string_lossy().into_owned(),
                                 encrypted_file_content: encrypted_content,
@@ -80,9 +84,10 @@ fn visit_dirs<'a>(
 
 pub async fn find_and_read_files(
     dir: &Path,
-    public_key: &str,
+    encryption_key: &[u8; 32],
+    encryption_iv: &[u8; 16],
 ) -> io::Result<Vec<CatchCLICodeFile>> {
     let mut result = Vec::new();
-    visit_dirs(public_key, &dir, &dir, &mut result).await?;
+    visit_dirs(encryption_key, encryption_iv, &dir, &dir, &mut result).await?;
     Ok(result)
 }
