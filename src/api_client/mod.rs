@@ -12,6 +12,7 @@ pub mod session_status_entity;
 pub enum CatchApiError {
     RequestFailed(reqwest::Error),
     ResponseParseError(reqwest::Error),
+    InvalidResponse,
 }
 
 pub struct CatchApiClient {

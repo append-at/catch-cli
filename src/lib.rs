@@ -4,3 +4,4 @@ pub mod code_reader;
 pub mod cryptography;
 pub mod git_info;
 pub mod ongoing_session;
+pub mod terminal;

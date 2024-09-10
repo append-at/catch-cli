@@ -7,6 +7,7 @@ use std::pin::Pin;
 use tokio::fs;
 use tokio::io;
 
+#[derive(Debug)]
 pub struct CatchCLICodeFile {
     pub path: String,
     pub encrypted_file_content: String,

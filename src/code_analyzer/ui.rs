@@ -1,6 +1,7 @@
-use crate::api_client::cli_entity::CatchConnectCLIResponse;
-use crate::api_client::request_entity::CatchConnectCLIRequest;
-use crate::api_client::{CatchApiClient, CatchApiResponse};
+use crate::api_client::session_status_entity::CatchSessionExtractingCandidatesResult;
+use crate::api_client::CatchApiResponse;
+use crate::code_analyzer::{check_rcp_status, request_rcp};
+use crate::code_reader::CatchCLICodeFile;
 use crate::terminal::finalize_terminal;
 use log::{error, info, warn};
 use ratatui::backend::CrosstermBackend;
@@ -9,56 +10,28 @@ use ratatui::crossterm::event;
 use ratatui::crossterm::event::{Event, KeyCode, KeyModifiers};
 use ratatui::crossterm::terminal::enable_raw_mode;
 use ratatui::layout::Rect;
-use ratatui::style::Stylize;
+use ratatui::prelude::Stylize;
 use ratatui::Terminal;
 use std::io;
 use std::time::Duration;
 use tokio::select;
 
 #[derive(Default)]
-struct ConnectSessionConnectUiState {
+struct CodeCandidateUiState {
     ui_state: throbber_widgets_tui::ThrobberState,
 }
 
-impl ConnectSessionConnectUiState {
+impl CodeCandidateUiState {
     fn on_tick(&mut self) {
         self.ui_state.calc_next();
     }
 }
 
-async fn perform_api_request(
+pub async fn request_code_candidates(
+    integration_id: String,
     session_id: String,
-    org_name: String,
-    repo_name: String,
-) -> io::Result<CatchConnectCLIResponse> {
-    let api_client = CatchApiClient::new();
-
-    let response = api_client
-        .post::<CatchConnectCLIResponse, CatchConnectCLIRequest>(
-            "/cli",
-            &CatchConnectCLIRequest {
-                session_id,
-                repo_owner: org_name,
-                repo_name,
-            },
-        )
-        .await
-        .unwrap();
-
-    match response {
-        CatchApiResponse::Success(response) => Ok(response),
-        CatchApiResponse::NoContent => {
-            error!("API request failed");
-            Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
-        }
-    }
-}
-
-pub async fn connect_cli_to_session(
-    session_id: String,
-    org_name: String,
-    repo_name: String,
-) -> io::Result<CatchConnectCLIResponse> {
+    code_files: Vec<CatchCLICodeFile>,
+) -> io::Result<CatchSessionExtractingCandidatesResult> {
     enable_raw_mode()?;
 
     let stdout = io::stdout();
@@ -67,26 +40,17 @@ pub async fn connect_cli_to_session(
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_millis(100);
-    let mut state = ConnectSessionConnectUiState::default();
+    let mut state = CodeCandidateUiState::default();
 
-    let mut api_future = tokio::spawn(perform_api_request(
-        session_id.clone(),
-        org_name.clone(),
-        repo_name.clone(),
-    ));
+    let mut api_result: Option<CatchApiResponse<()>> = None;
 
-    let mut api_result: Option<CatchConnectCLIResponse> = None;
-
-    let message = format!(
-        "Setting repoKey({}/{}) and attaching cli to onboarding session(id={})...",
-        org_name, repo_name, session_id
-    );
+    let message = "Analyzing your code structure...".to_string();
 
     let terminal_size = terminal.size()?;
     let (_, row) = position()?;
     let area = Rect::new(0, row, terminal_size.width, 3);
 
-    let mut is_canceled = false;
+    let mut api_future = tokio::spawn(request_rcp(integration_id, session_id.clone(), code_files));
 
     loop {
         terminal.draw(|f| {
@@ -103,7 +67,7 @@ pub async fn connect_cli_to_session(
                     finalize_terminal(&mut terminal)?;
                     println!(" {} - Canceled", message.clone());
                     warn!("User aborted the operation");
-                    is_canceled = true;
+
                     break;
                 }
             }
@@ -117,7 +81,23 @@ pub async fn connect_cli_to_session(
                 match api_resp {
                     Ok(result) => {
                         api_result = Some(result?);
-                        break;
+
+                        match api_result {
+                            Some(ref result) => {
+                                match result {
+                                    CatchApiResponse::NoContent => {
+                                        break;
+                                    }
+                                    _ => {
+                                        return Err(io::Error::new(io::ErrorKind::Other, "Invalid response"));
+                                    }
+                                }
+                            }
+                            None => {
+                                error!("Failed to get code candidates");
+                                return Err(io::Error::new(io::ErrorKind::Other, "Failed to get code candidates"));
+                            }
+                        }
                     }
                     Err(e) => {
                         info!("API request unsuccessful");
@@ -130,17 +110,24 @@ pub async fn connect_cli_to_session(
 
     finalize_terminal(&mut terminal)?;
 
-    match api_result {
-        Some(result) => {
-            println!(" {} - Completed", message.clone());
-            Ok(result)
-        }
-        None => {
-            if !is_canceled {
-                println!(" {} - Failed", message.clone());
+    if api_result.is_some() {
+        match check_rcp_status(session_id.clone()).await {
+            Ok(result) => {
+                if result.status == "completed" {
+                    Ok(result)
+                } else {
+                    Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
+                }
             }
-
-            Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
+            Err(e) => {
+                error!("Failed to check session status: {}", e);
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Failed to check session status",
+                ))
+            }
         }
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
     }
 }

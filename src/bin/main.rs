@@ -1,4 +1,4 @@
-use catch_cli::code_analyzer::request_rcp;
+use catch_cli::code_analyzer::ui::request_code_candidates;
 use catch_cli::code_reader::find_and_read_files;
 use catch_cli::git_info;
 use catch_cli::ongoing_session::active_session_checker::{
@@ -76,7 +76,10 @@ async fn main() -> io::Result<()> {
             }
         };
 
-    info!(":✅ Connected CLI to session: {:?}", cli_connect_result);
+    info!(
+        ":✅ Connected CLI to session: {:?}",
+        cli_connect_result.integration_id
+    );
 
     let encryption_key = rand::random::<[u8; 32]>();
     let iv = rand::random::<[u8; 16]>();
@@ -84,28 +87,25 @@ async fn main() -> io::Result<()> {
     let current_dir = std::env::current_dir()?;
     let pre_target_files = find_and_read_files(&current_dir, &encryption_key, &iv).await?;
 
-    for file in pre_target_files {
-        info!(
-            ":📄 Found supported file: {:?}",
-            file.encrypted_file_content
-        );
+    for file in &pre_target_files {
+        info!(":📄 Found supported file: {:?}", file.path);
     }
 
-    match request_rcp(
-        &cli_connect_result.integration_id,
-        &active_session_id,
-        &pre_target_files,
+    let result = match request_code_candidates(
+        cli_connect_result.integration_id,
+        active_session_id,
+        pre_target_files,
     )
     .await
     {
-        Ok(_) => {
-            info!(":✅ Requested code analyzer.");
-        }
+        Ok(result) => result,
         Err(e) => {
-            error!("Failed to request code analyzer: {}", e);
+            error!("Failed to request code candidates: {}", e);
             exit(-6);
         }
-    }
+    };
+
+    println!("Candidates: {:?}", result);
 
     Ok(())
 }

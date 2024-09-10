@@ -1,5 +1,5 @@
 use crate::api_client::session_status_entity::CatchSessionStatusResponse;
-use crate::api_client::{CatchApiClient, CatchApiError, CatchApiResponse, BASE_CATCH_API_URL};
+use crate::api_client::{CatchApiClient, CatchApiError, CatchApiResponse};
 use log::{error, warn};
 use regex::Regex;
 use reqwest::StatusCode;
@@ -84,6 +84,13 @@ pub async fn is_session_valid(session_id: String) -> io::Result<bool> {
             CatchApiError::ResponseParseError(e) => {
                 error!("API response parse error: {}", e);
                 Err(io::Error::new(io::ErrorKind::Other, e))
+            }
+            CatchApiError::InvalidResponse => {
+                error!("API response is invalid");
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "API response is invalid",
+                ))
             }
         },
     }
