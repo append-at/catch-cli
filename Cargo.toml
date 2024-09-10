@@ -21,9 +21,11 @@ log = "0.4.22"
 handsome_logger = "0.8.0"
 
 # UI
+color-eyre = "0.6.3"
 ratatui = "0.28.1"
 tui-textarea = "0.6.1"
 throbber-widgets-tui = "0.7.0"
+unicode-width = "0.1.13"
 
 # Unicode
 unicode-segmentation = "1.10.1"
