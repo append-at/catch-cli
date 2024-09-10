@@ -51,6 +51,9 @@ libaes = "0.7.0"
 # Browser
 webbrowser = "1.0.1"
 
+# Error Reporting
+sentry = { version = "0.34.0", features = ["debug-images"] }
+
 [dev-dependencies]
 mockito = "1.5.0"
 tokio = { version = "1.39.3", features = ["full", "test-util"] }
@@ -58,3 +61,7 @@ tokio = { version = "1.39.3", features = ["full", "test-util"] }
 [[bin]]
 name = "catch"
 path = "src/bin/main.rs"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true

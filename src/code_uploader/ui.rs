@@ -8,9 +8,7 @@ use ratatui::crossterm::cursor::position;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::{DefaultTerminal, Frame};
-use std::fs::File;
 use std::io;
-use std::io::Write;
 use std::time::Duration;
 use tokio::select;
 
@@ -23,18 +21,6 @@ async fn perform_api_request(
     public_key_pem: String,
 ) -> io::Result<()> {
     let api_client = CatchApiClient::default();
-
-    let json = serde_json::to_string(&CatchCLIUploadFilesRequest {
-        session_id: session_id.clone(),
-        files: code_files.clone(),
-        client_encrypted_iv: encrypt_rsa4096_base64_bytes(&public_key_pem, &iv)
-            .unwrap_or("".to_string()),
-        client_encrypted_key: encrypt_rsa4096_base64_bytes(&public_key_pem, &key)
-            .unwrap_or("".to_string()),
-    })?;
-
-    let mut file = File::create("log.txt")?;
-    file.write_all(json.as_bytes())?;
 
     let response = api_client
         .post::<(), CatchCLIUploadFilesRequest>(
