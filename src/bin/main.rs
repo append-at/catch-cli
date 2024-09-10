@@ -1,5 +1,7 @@
 use catch_cli::code_analyzer::ui::request_code_candidates;
+use catch_cli::code_candidate_selector::filter_code_files;
 use catch_cli::code_reader::find_and_read_files;
+use catch_cli::code_uploader::upload_codes;
 use catch_cli::git_info;
 use catch_cli::ongoing_session::active_session_checker::{
     handle_sessions, is_session_valid, CatchSessionError,
@@ -10,7 +12,6 @@ use log::{error, info};
 use once_cell::sync::Lazy;
 use std::process::exit;
 use std::{io, panic};
-use catch_cli::code_candidate_selector::filter_code_files;
 
 pub static SIGNALING_STOP: Lazy<(Sender<()>, Receiver<()>)> = Lazy::new(flume::unbounded);
 
@@ -70,7 +71,7 @@ async fn main() -> io::Result<()> {
 
     let (org_name, repo_name) = git_info::get_repo_info()?;
     let cli_connect_result =
-        match connect_cli_to_session(active_session_id.to_owned(), org_name, repo_name).await {
+        match connect_cli_to_session(active_session_id.clone(), org_name, repo_name).await {
             Ok(response) => response,
             Err(e) => {
                 error!("Failed to connect CLI to session: {}", e);
@@ -94,8 +95,8 @@ async fn main() -> io::Result<()> {
     }
 
     let code_candidate_result = match request_code_candidates(
-        cli_connect_result.integration_id,
-        active_session_id,
+        cli_connect_result.integration_id.clone(),
+        active_session_id.clone(),
         pre_target_files.clone(),
     )
     .await
@@ -107,9 +108,41 @@ async fn main() -> io::Result<()> {
         }
     };
 
-    let selected_codes = filter_code_files(pre_target_files, code_candidate_result.candidates.clone());
-    
-    
+    let selected_codes =
+        filter_code_files(pre_target_files, code_candidate_result.candidates.clone());
+
+    let upload_file_result = upload_codes(
+        cli_connect_result.integration_id,
+        active_session_id.clone(),
+        selected_codes,
+        encryption_key,
+        iv,
+        cli_connect_result.public_key,
+    )
+    .await;
+
+    match upload_file_result {
+        Ok(_) => {
+            info!(":✅ Uploaded code files successfully");
+
+            println!("\n");
+            println!("Now, you can check the progress of the session on the Catch.");
+
+            let url = format!(
+                "https://trycatch.ai/onboarding/{}?step=3-generating",
+                active_session_id
+            );
+            println!("🚀  {}", url);
+
+            if webbrowser::open(url.as_str()).is_ok() {
+                info!("Import files via CLI completed!")
+            }
+        }
+        Err(e) => {
+            error!("Failed to upload code files: {}", e);
+            exit(-7);
+        }
+    }
 
     Ok(())
 }

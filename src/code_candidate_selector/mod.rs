@@ -2,7 +2,7 @@ use crate::code_candidate_selector::ui::CodeCandidateSelector;
 use crate::code_reader::CatchCLICodeFile;
 use std::io;
 
-pub mod ui;
+mod ui;
 
 pub fn select_codes(code_files: Vec<CatchCLICodeFile>) -> io::Result<Vec<CatchCLICodeFile>> {
     let code_files_clone = code_files.clone();

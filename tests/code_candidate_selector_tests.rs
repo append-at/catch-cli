@@ -6,15 +6,15 @@ fn test_filter_code_files() {
     let files = vec![
         CatchCLICodeFile {
             path: String::from("/path/to/file1.rs"),
-            encrypted_file_content: String::from("content1"),
+            content: String::from("content1"),
         },
         CatchCLICodeFile {
             path: String::from("/path/to/file2.rs"),
-            encrypted_file_content: String::from("content2"),
+            content: String::from("content2"),
         },
         CatchCLICodeFile {
             path: String::from("/path/to/file3.rs"),
-            encrypted_file_content: String::from("content3"),
+            content: String::from("content3"),
         },
     ];
 

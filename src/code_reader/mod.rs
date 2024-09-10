@@ -1,16 +1,17 @@
 use crate::cryptography::encrypt_aes_256;
 use base64::engine::general_purpose;
 use base64::Engine;
+use serde::Serialize;
 use std::future::Future;
 use std::path::Path;
 use std::pin::Pin;
 use tokio::fs;
 use tokio::io;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct CatchCLICodeFile {
     pub path: String,
-    pub encrypted_file_content: String,
+    pub content: String,
 }
 
 fn is_whitelisted(file_name: &str) -> bool {
@@ -74,7 +75,7 @@ fn visit_dirs<'a>(
 
                         result.push(CatchCLICodeFile {
                             path: relative_path.to_string_lossy().into_owned(),
-                            encrypted_file_content: encrypted_content,
+                            content: encrypted_content,
                         });
                     }
                 }

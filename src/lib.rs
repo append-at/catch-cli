@@ -2,6 +2,7 @@ pub mod api_client;
 pub mod code_analyzer;
 pub mod code_candidate_selector;
 pub mod code_reader;
+pub mod code_uploader;
 pub mod cryptography;
 pub mod git_info;
 pub mod ongoing_session;

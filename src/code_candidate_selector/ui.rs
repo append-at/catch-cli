@@ -72,7 +72,6 @@ pub struct CodeCandidateSelector {
     longest_item_lens: (u16, u16),
     scroll_state: ScrollbarState,
     colors: TableColors,
-    color_index: usize,
 }
 
 impl CodeCandidateSelector {
@@ -91,7 +90,6 @@ impl CodeCandidateSelector {
             longest_item_lens: constraint_len_calculator(&data_vec),
             scroll_state: ScrollbarState::new((data_vec.len() - 1) * ITEM_HEIGHT),
             colors: TableColors::new(&tailwind::NEUTRAL),
-            color_index: 0,
             items: data_vec,
         }
     }

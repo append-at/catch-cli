@@ -25,10 +25,10 @@ async fn test_find_and_read_files() -> Result<(), Box<dyn std::error::Error>> {
     assert!(file_names.contains(&"AndroidManifest.xml"));
 
     for file in &files {
-        assert_ne!(file.encrypted_file_content, "Test content");
+        assert_ne!(file.content, "Test content");
 
         assert!(base64::engine::general_purpose::STANDARD
-            .decode(&file.encrypted_file_content)
+            .decode(&file.content)
             .is_ok());
     }
 
