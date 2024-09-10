@@ -1,4 +1,3 @@
-use crate::api_client::cli_entity::CatchConnectCLIResponse;
 use crate::api_client::request_entity::CatchCLIUploadFilesRequest;
 use crate::api_client::{CatchApiClient, CatchApiResponse};
 use crate::code_reader::CatchCLICodeFile;
@@ -9,7 +8,9 @@ use ratatui::crossterm::cursor::position;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::{DefaultTerminal, Frame};
+use std::fs::File;
 use std::io;
+use std::io::Write;
 use std::time::Duration;
 use tokio::select;
 
@@ -20,11 +21,23 @@ async fn perform_api_request(
     key: [u8; 32],
     iv: [u8; 16],
     public_key_pem: String,
-) -> io::Result<CatchConnectCLIResponse> {
+) -> io::Result<()> {
     let api_client = CatchApiClient::default();
 
+    let json = serde_json::to_string(&CatchCLIUploadFilesRequest {
+        session_id: session_id.clone(),
+        files: code_files.clone(),
+        client_encrypted_iv: encrypt_rsa4096_base64_bytes(&public_key_pem, &iv)
+            .unwrap_or("".to_string()),
+        client_encrypted_key: encrypt_rsa4096_base64_bytes(&public_key_pem, &key)
+            .unwrap_or("".to_string()),
+    })?;
+
+    let mut file = File::create("log.txt")?;
+    file.write_all(json.as_bytes())?;
+
     let response = api_client
-        .post::<_, CatchCLIUploadFilesRequest>(
+        .post::<(), CatchCLIUploadFilesRequest>(
             format!("/cli/{}/files", integration_id).as_str(),
             &CatchCLIUploadFilesRequest {
                 session_id,
@@ -35,15 +48,22 @@ async fn perform_api_request(
                     .unwrap_or("".to_string()),
             },
         )
-        .await
-        .unwrap();
+        .await;
+
+    let response = match response {
+        Ok(response) => response,
+        Err(e) => {
+            error!("API request failed: {}", format!("{:?}", e));
+            return Err(io::Error::new(io::ErrorKind::Other, "API request failed"));
+        }
+    };
 
     match response {
-        CatchApiResponse::Success(response) => Ok(response),
-        CatchApiResponse::NoContent => {
+        CatchApiResponse::Success(_) => {
             error!("API request failed");
             Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
         }
+        CatchApiResponse::NoContent => Ok(()),
     }
 }
 
@@ -83,8 +103,6 @@ impl CodeUploader {
             public_key_pem.clone(),
         ));
 
-        let mut api_result: Option<CatchConnectCLIResponse> = None;
-
         loop {
             terminal.draw(|frame| self.draw(frame, area))?;
 
@@ -94,11 +112,12 @@ impl CodeUploader {
                 }
                 api_resp = &mut api_future => {
                     match api_resp {
-                        Ok(result) => {
-                            api_result = Some(result?);
+                        Ok(_result) => {
+                            finalize_terminal(&mut terminal)?;
                             break;
                         }
                         Err(e) => {
+                            finalize_terminal(&mut terminal)?;
                             return Err(io::Error::new(io::ErrorKind::Other, format!("API request failed: {}", e)));
                         }
                     }
@@ -108,13 +127,8 @@ impl CodeUploader {
 
         finalize_terminal(&mut terminal)?;
 
-        match api_result {
-            Some(_) => {
-                println!(" Uploading your code with E2EE encryption... - Completed");
-                Ok(())
-            }
-            None => Err(io::Error::new(io::ErrorKind::Other, "API request failed")),
-        }
+        println!(" Uploading your code with E2EE encryption... - Completed");
+        Ok(())
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect) {

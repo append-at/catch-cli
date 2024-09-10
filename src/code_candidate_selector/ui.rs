@@ -1,4 +1,5 @@
 use crate::code_reader::CatchCLICodeFile;
+use crate::terminal::finalize_terminal;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Constraint, Layout, Margin, Rect},
@@ -57,6 +58,10 @@ impl Data {
         [&self.is_selected, &self.file_name, &self.file_path]
     }
 
+    fn is_sel(&self) -> &str {
+        &self.is_selected
+    }
+
     fn name(&self) -> &str {
         &self.file_name
     }
@@ -69,7 +74,7 @@ impl Data {
 pub struct CodeCandidateSelector {
     state: TableState,
     items: Vec<Data>,
-    longest_item_lens: (u16, u16),
+    longest_item_lens: (u16, u16, u16),
     scroll_state: ScrollbarState,
     colors: TableColors,
 }
@@ -79,7 +84,7 @@ impl CodeCandidateSelector {
         let data_vec: Vec<Data> = candidate_files
             .into_iter()
             .map(|file| Data {
-                is_selected: "0".to_string(),
+                is_selected: "+".to_string(),
                 file_name: extract_filename(file.path.as_str()).to_string(),
                 file_path: file.path.to_string(),
             })
@@ -97,8 +102,8 @@ impl CodeCandidateSelector {
     fn select(&mut self) {
         let i = self.state.selected().unwrap_or(0);
         let is_selected = match self.items[i].is_selected.as_str() {
-            "0" => "1",
-            _ => "0",
+            "-" => "+",
+            _ => "-",
         };
         self.items[i].is_selected = is_selected.to_string();
     }
@@ -141,12 +146,13 @@ impl CodeCandidateSelector {
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Enter => {
+                            finalize_terminal(&mut terminal)?;
                             return Ok(self
                                 .items
                                 .iter()
-                                .filter(|data| data.is_selected == "1")
+                                .filter(|data| data.is_selected == "+")
                                 .map(|data| data.file_path.clone())
-                                .collect())
+                                .collect());
                         }
                         KeyCode::Down => self.next(),
                         KeyCode::Up => self.previous(),
@@ -175,7 +181,7 @@ impl CodeCandidateSelector {
             .add_modifier(Modifier::REVERSED)
             .fg(self.colors.selected_style_fg);
 
-        let header = ["Selected", "File Name", "File Path"]
+        let header = ["", "File Name", "File Path"]
             .into_iter()
             .map(Cell::from)
             .collect::<Row>()
@@ -191,15 +197,16 @@ impl CodeCandidateSelector {
                 .map(|content| Cell::from(Text::from(format!("\n{content}\n"))))
                 .collect::<Row>()
                 .style(Style::new().fg(self.colors.row_fg).bg(color))
-                .height(4)
+                .height(2)
         });
         let bar = " █ ";
         let t = Table::new(
             rows,
             [
                 // + 1 is for padding.
-                Constraint::Length(self.longest_item_lens.0 + 1),
+                Constraint::Length(self.longest_item_lens.0 + 2),
                 Constraint::Min(self.longest_item_lens.1 + 1),
+                Constraint::Min(self.longest_item_lens.2 + 1),
             ],
         )
         .header(header)
@@ -246,7 +253,13 @@ impl CodeCandidateSelector {
     }
 }
 
-fn constraint_len_calculator(items: &[Data]) -> (u16, u16) {
+fn constraint_len_calculator(items: &[Data]) -> (u16, u16, u16) {
+    let selected_len = items
+        .iter()
+        .map(Data::is_sel)
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
     let name_len = items
         .iter()
         .map(Data::name)
@@ -262,7 +275,7 @@ fn constraint_len_calculator(items: &[Data]) -> (u16, u16) {
         .unwrap_or(0);
 
     #[allow(clippy::cast_possible_truncation)]
-    (name_len as u16, path_len as u16)
+    (selected_len as u16, name_len as u16, path_len as u16)
 }
 
 fn extract_filename(path: &str) -> &str {

@@ -1,5 +1,5 @@
 use catch_cli::code_analyzer::ui::request_code_candidates;
-use catch_cli::code_candidate_selector::filter_code_files;
+use catch_cli::code_candidate_selector::{filter_code_files, select_codes};
 use catch_cli::code_reader::find_and_read_files;
 use catch_cli::code_uploader::upload_codes;
 use catch_cli::git_info;
@@ -108,13 +108,15 @@ async fn main() -> io::Result<()> {
         }
     };
 
-    let selected_codes =
+    let candidate_code_result =
         filter_code_files(pre_target_files, code_candidate_result.candidates.clone());
+
+    let selected_files = select_codes(candidate_code_result.clone()).unwrap_or_default();
 
     let upload_file_result = upload_codes(
         cli_connect_result.integration_id,
         active_session_id.clone(),
-        selected_codes,
+        selected_files,
         encryption_key,
         iv,
         cli_connect_result.public_key,
