@@ -114,20 +114,20 @@ pub async fn request_code_candidates(
         match check_rcp_status(session_id.clone()).await {
             Ok(result) => {
                 if result.status == "completed" {
+                    println!(" {} - Completed", message.clone());
                     Ok(result)
                 } else {
+                    println!(" {} - Failed", message.clone());
                     Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
                 }
             }
             Err(e) => {
-                error!("Failed to check session status: {}", e);
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Failed to check session status",
-                ))
+                println!(" {} - Failed", message.clone());
+                Err(io::Error::new(io::ErrorKind::Other, e))
             }
         }
     } else {
+        println!(" {} - Failed", message.clone());
         Err(io::Error::new(io::ErrorKind::Other, "API request failed"))
     }
 }

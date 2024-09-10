@@ -42,7 +42,7 @@ fn get_session_folders(temp_path: &Path) -> io::Result<Vec<(String, PathBuf)>> {
 }
 
 pub async fn is_session_valid(session_id: String) -> io::Result<bool> {
-    let api_client = CatchApiClient::new();
+    let api_client = CatchApiClient::default();
     let response = api_client
         .get::<CatchSessionStatusResponse>(format!("/session/{}/process", session_id).as_str())
         .await;

@@ -18,7 +18,7 @@ pub async fn request_rcp(
         .map(|file| file.path.clone())
         .collect();
 
-    let api_client = CatchApiClient::new();
+    let api_client = CatchApiClient::default();
 
     let response = api_client
         .post::<(), CatchCLIRcpRequest>(
@@ -42,7 +42,7 @@ pub async fn request_rcp(
 pub async fn check_rcp_status(
     session_id: String,
 ) -> io::Result<CatchSessionExtractingCandidatesResult> {
-    let api_client = CatchApiClient::new();
+    let api_client = CatchApiClient::default();
 
     let response = api_client
         .get::<CatchSessionStatusResponse>(format!("/session/{}/process", session_id).as_str())

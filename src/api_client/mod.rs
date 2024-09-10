@@ -31,8 +31,8 @@ impl From<reqwest::Error> for CatchApiError {
     }
 }
 
-impl CatchApiClient {
-    pub fn new() -> Self {
+impl Default for CatchApiClient {
+    fn default() -> Self {
         let base_url = std::env::var("CATCH_CLI_BASE_API_URL");
 
         Self {
@@ -40,7 +40,9 @@ impl CatchApiClient {
             base_url: base_url.unwrap_or_else(|_| BASE_CATCH_API_URL.to_string()),
         }
     }
+}
 
+impl CatchApiClient {
     async fn handle_response<T: DeserializeOwned>(
         response: Response,
     ) -> Result<CatchApiResponse<T>, CatchApiError> {

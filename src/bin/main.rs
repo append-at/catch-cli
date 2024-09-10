@@ -10,6 +10,7 @@ use log::{error, info};
 use once_cell::sync::Lazy;
 use std::process::exit;
 use std::{io, panic};
+use catch_cli::code_candidate_selector::filter_code_files;
 
 pub static SIGNALING_STOP: Lazy<(Sender<()>, Receiver<()>)> = Lazy::new(flume::unbounded);
 
@@ -23,6 +24,7 @@ fn shutdown() {
 #[tokio::main]
 async fn main() -> io::Result<()> {
     handsome_logger::init().unwrap();
+    _ = color_eyre::install();
 
     panic::set_hook(Box::new(|e| {
         println!("{e}");
@@ -87,14 +89,14 @@ async fn main() -> io::Result<()> {
     let current_dir = std::env::current_dir()?;
     let pre_target_files = find_and_read_files(&current_dir, &encryption_key, &iv).await?;
 
-    for file in &pre_target_files {
+    for file in &pre_target_files.clone() {
         info!(":📄 Found supported file: {:?}", file.path);
     }
 
-    let result = match request_code_candidates(
+    let code_candidate_result = match request_code_candidates(
         cli_connect_result.integration_id,
         active_session_id,
-        pre_target_files,
+        pre_target_files.clone(),
     )
     .await
     {
@@ -105,7 +107,9 @@ async fn main() -> io::Result<()> {
         }
     };
 
-    println!("Candidates: {:?}", result);
+    let selected_codes = filter_code_files(pre_target_files, code_candidate_result.candidates.clone());
+    
+    
 
     Ok(())
 }

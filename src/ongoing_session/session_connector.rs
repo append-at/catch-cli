@@ -31,7 +31,7 @@ async fn perform_api_request(
     org_name: String,
     repo_name: String,
 ) -> io::Result<CatchConnectCLIResponse> {
-    let api_client = CatchApiClient::new();
+    let api_client = CatchApiClient::default();
 
     let response = api_client
         .post::<CatchConnectCLIResponse, CatchConnectCLIRequest>(
