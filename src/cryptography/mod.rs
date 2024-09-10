@@ -2,8 +2,9 @@ use base64::Engine;
 use libaes::Cipher;
 use pkcs8::DecodePublicKey;
 use rand::rngs::OsRng;
+use rsa::sha2::Sha256;
 use rsa::traits::PublicKeyParts;
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
+use rsa::{Oaep, RsaPublicKey};
 
 pub fn encrypt_aes_256(key: &[u8; 32], iv: &[u8; 16], message: &str) -> Vec<u8> {
     let cipher = Cipher::new_256(key);
@@ -22,8 +23,7 @@ pub fn encrypt_rsa4096_base64_bytes(
     public_key_pem: &str,
     message: &[u8],
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let encoded_message = base64::engine::general_purpose::STANDARD.encode(message);
-    encrypt_rsa4096_base64_internal(public_key_pem, encoded_message.as_bytes())
+    encrypt_rsa4096_base64_internal(public_key_pem, message)
 }
 
 fn encrypt_rsa4096_base64_internal(
@@ -42,8 +42,9 @@ fn encrypt_rsa4096_base64_internal(
         return Err(err_msg.into());
     }
 
+    let padding = Oaep::new::<Sha256>();
     let mut rng = OsRng;
-    let enc_data = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, encoded_message)?;
+    let enc_data = public_key.encrypt(&mut rng, padding, encoded_message)?;
 
     Ok(base64::engine::general_purpose::STANDARD.encode(enc_data))
 }
